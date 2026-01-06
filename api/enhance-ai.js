@@ -9,6 +9,9 @@ module.exports = async (req, res) => {
   try {
     const { field, text } = req.body;
 
+    // Use dynamic import for node-fetch
+    const fetch = (await import('node-fetch')).default;
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -25,6 +28,12 @@ module.exports = async (req, res) => {
         }]
       })
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Anthropic API error:', errorData);
+      return res.status(500).json({ error: 'AI service error' });
+    }
 
     const data = await response.json();
     res.status(200).json({ enhanced: data.content[0].text.trim() });
