@@ -1,5 +1,10 @@
 const stripe = require('stripe')('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');
 
+console.log('===== HARDCODED KEY VERSION - TIMESTAMP: 2026-01-06 13:15 =====');
+console.log('Stripe key type:', typeof stripe);
+console.log('Has stripe:', !!stripe);
+
+module.exports = async (req, res) => {
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
