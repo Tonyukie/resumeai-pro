@@ -5,19 +5,55 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  console.log('Create checkout called');
+  console.log('Price ID:', req.body?.priceId);
+  console.log('Stripe key exists:', !!process.env.STRIPE_SECRET_KEY);
 
   try {
     const { priceId } = req.body;
+
+    if (!priceId) {
+      return res.status(400).json({ error: 'Price ID is required' });
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ error: 'Stripe key not configured' });
+    }
+
+    console.log('Creating Stripe session...');
+
     const session = await stripe.checkout.sessions.create({
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
       mode: priceId === 'price_1SmcQwCsMGESldVaYSPruaAo' ? 'subscription' : 'payment',
-      success_url: `${req.headers.origin || 'https://resumeai.ink'}?success=true`,
+      success_url: `${req.headers.origin || 'https://resumeai.ink'}?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin || 'https://resumeai.ink'}?canceled=true`,
     });
-    res.status(200).json({ url: session.url });
+
+    console.log('Session created:', session.id);
+
+    return res.status(200).json({ 
+      sessionId: session.id, 
+      url: session.url 
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Stripe error details:', err);
+    return res.status(500).json({ 
+      error: err.message,
+      type: err.type,
+      statusCode: err.statusCode
+    });
   }
 };
