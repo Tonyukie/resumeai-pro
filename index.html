@@ -3,36 +3,347 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ResumeAI Pro - AI-Powered Resume Builder</title>
+  <title>ResumeAI Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
   <div id="root"></div>
   
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  
-  <script type="module">
+  <script type="text/babel">
+    const { useState } = React;
     const { FileText, Sparkles, CheckCircle, AlertCircle, Zap, X, Crown, Download } = lucide;
-    
-    function App() {
-      const [activeTab, setActiveTab] = React.useState('builder');
-      const [resume, setResume] = React.useState({
+
+    function ResumeBuilder() {
+      const [activeTab, setActiveTab] = useState('builder');
+      const [resume, setResume] = useState({
         name: '', email: '', phone: '', location: '', summary: '',
         experience: [{ company: '', position: '', duration: '', description: '' }],
         education: [{ school: '', degree: '', year: '' }],
         skills: ''
       });
+      const [template, setTemplate] = useState('modern');
+      const [aiLoading, setAiLoading] = useState(false);
+      const [score, setScore] = useState(null);
+      const [aiSuccess, setAiSuccess] = useState(null);
+      const [isPro, setIsPro] = useState(false);
+      const [aiUsageCount, setAiUsageCount] = useState(0);
+      const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-      return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50' },
-        React.createElement('h1', { className: 'text-4xl font-bold text-center py-20' }, 'ResumeAI Pro'),
-        React.createElement('p', { className: 'text-center text-gray-600' }, 'AI-Powered Resume Builder - Loading Successfully!')
+      const MONTHLY_PRICE_ID = 'price_1SmcQwCsMGESldVaYSPruaAo';
+      const LIFETIME_PRICE_ID = 'price_1SmcRKCsMGESldValjweeshu';
+
+      const handleUpgrade = async (priceId) => {
+        try {
+          const res = await fetch('/api/create-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ priceId })
+          });
+          const data = await res.json();
+          if (data.url) window.location.href = data.url;
+        } catch (err) {
+          alert('Payment failed. Please try again.');
+        }
+      };
+
+      const enhanceWithAI = async (field, text) => {
+        if (!isPro && aiUsageCount >= 3) {
+          setShowUpgradeModal(true);
+          return text;
+        }
+        setAiLoading(true);
+        setAiSuccess(null);
+        try {
+          const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1000,
+              messages: [{ role: "user", content: `Improve this resume ${field}: "${text}". Make it professional and ATS-friendly. Return ONLY improved text.` }]
+            })
+          });
+          const data = await res.json();
+          const enhanced = data.content[0].text.trim();
+          setAiSuccess('Enhanced!');
+          if (!isPro) setAiUsageCount(p => p + 1);
+          setTimeout(() => setAiSuccess(null), 3000);
+          return enhanced;
+        } catch {
+          setAiSuccess('Failed');
+          setTimeout(() => setAiSuccess(null), 3000);
+          return text;
+        } finally {
+          setAiLoading(false);
+        }
+      };
+
+      const updateField = (f, v) => setResume(p => ({ ...p, [f]: v }));
+      const addExp = () => setResume(p => ({ ...p, experience: [...p.experience, { company: '', position: '', duration: '', description: '' }] }));
+      const updateExp = (i, f, v) => setResume(p => ({ ...p, experience: p.experience.map((e, idx) => idx === i ? { ...e, [f]: v } : e) }));
+      const enhanceExp = async (i) => {
+        const e = resume.experience[i];
+        const enhanced = await enhanceWithAI('job description', e.description);
+        updateExp(i, 'description', enhanced);
+      };
+      const addEdu = () => setResume(p => ({ ...p, education: [...p.education, { school: '', degree: '', year: '' }] }));
+      const updateEdu = (i, f, v) => setResume(p => ({ ...p, education: p.education.map((e, idx) => idx === i ? { ...e, [f]: v } : e) }));
+      
+      const generateSkills = async () => {
+        if (!isPro && aiUsageCount >= 3) {
+          setShowUpgradeModal(true);
+          return;
+        }
+        setAiLoading(true);
+        try {
+          const expText = resume.experience.filter(e => e.description).map(e => `${e.position} at ${e.company}: ${e.description}`).join('\n\n');
+          const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1000,
+              messages: [{ role: "user", content: `Extract skills from:\n${expText}\nReturn comma-separated list only.` }]
+            })
+          });
+          const data = await res.json();
+          updateField('skills', data.content[0].text.trim());
+          setAiSuccess('Skills generated!');
+          if (!isPro) setAiUsageCount(p => p + 1);
+          setTimeout(() => setAiSuccess(null), 3000);
+        } catch {
+          setAiSuccess('Failed');
+          setTimeout(() => setAiSuccess(null), 3000);
+        } finally {
+          setAiLoading(false);
+        }
+      };
+
+      const templates = {
+        modern: 'bg-white border-l-4 border-blue-500',
+        classic: 'bg-gray-50 border border-gray-300',
+        minimal: 'bg-white shadow-lg'
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+          <header className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">ResumeAI Pro</h1>
+                  <p className="text-xs text-gray-500">AI-Powered Resume Builder</p>
+                </div>
+              </div>
+              <button onClick={() => setShowUpgradeModal(true)} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg">
+                Upgrade
+              </button>
+            </div>
+          </header>
+
+          {showUpgradeModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl max-w-2xl w-full p-8 relative max-h-screen overflow-y-auto">
+                <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4">
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="text-center mb-8">
+                  <Crown className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+                  <h2 className="text-3xl font-bold mb-2">Upgrade to Pro</h2>
+                  <p className="text-gray-600">Unlock unlimited AI features</p>
+                  {!isPro && <p className="text-sm text-orange-600 mt-2">Used {aiUsageCount}/3 free AI enhancements</p>}
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <div className="border-2 rounded-xl p-6">
+                    <h3 className="text-xl font-bold mb-2">Monthly</h3>
+                    <div className="text-4xl font-bold text-blue-600 mb-4">$15<span className="text-sm">/mo</span></div>
+                    <button onClick={() => handleUpgrade(MONTHLY_PRICE_ID)} className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold">Choose Monthly</button>
+                  </div>
+                  <div className="border-2 border-purple-500 rounded-xl p-6 bg-gradient-to-br from-purple-50 to-blue-50">
+                    <div className="text-xs bg-purple-600 text-white px-2 py-1 rounded mb-2 inline-block">BEST VALUE</div>
+                    <h3 className="text-xl font-bold mb-2">Lifetime</h3>
+                    <div className="text-4xl font-bold text-purple-600 mb-4">$500<span className="text-sm"> once</span></div>
+                    <button onClick={() => handleUpgrade(LIFETIME_PRICE_ID)} className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold">Get Lifetime</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {aiSuccess && (
+            <div className="fixed top-20 right-6 z-50">
+              <div className={`px-6 py-4 rounded-lg shadow-lg ${aiSuccess.includes('!') ? 'bg-green-500' : 'bg-red-500'} text-white`}>
+                {aiSuccess}
+              </div>
+            </div>
+          )}
+
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm p-6 border">
+                  <h2 className="text-xl font-bold mb-4">Personal Info</h2>
+                  <div className="space-y-4">
+                    <input type="text" placeholder="Full Name" value={resume.name} onChange={(e) => updateField('name', e.target.value)} className="w-full px-4 py-3 border rounded-lg" />
+                    <input type="email" placeholder="Email" value={resume.email} onChange={(e) => updateField('email', e.target.value)} className="w-full px-4 py-3 border rounded-lg" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <input type="tel" placeholder="Phone" value={resume.phone} onChange={(e) => updateField('phone', e.target.value)} className="px-4 py-3 border rounded-lg" />
+                      <input type="text" placeholder="Location" value={resume.location} onChange={(e) => updateField('location', e.target.value)} className="px-4 py-3 border rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border">
+                  <div className="flex justify-between mb-4">
+                    <h2 className="text-xl font-bold">Summary</h2>
+                    <button onClick={async () => updateField('summary', await enhanceWithAI('summary', resume.summary))} disabled={aiLoading || !resume.summary} className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg disabled:opacity-50">
+                      <Sparkles className="w-4 h-4" />
+                      {aiLoading ? 'Enhancing...' : 'AI Enhance'}
+                    </button>
+                  </div>
+                  <textarea placeholder="Brief professional overview..." value={resume.summary} onChange={(e) => updateField('summary', e.target.value)} rows={4} className="w-full px-4 py-3 border rounded-lg" />
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border">
+                  <div className="flex justify-between mb-4">
+                    <h2 className="text-xl font-bold">Experience</h2>
+                    <button onClick={addExp} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg">+ Add</button>
+                  </div>
+                  <div className="space-y-4">
+                    {resume.experience.map((exp, i) => (
+                      <div key={i} className="p-4 border rounded-lg space-y-3">
+                        <input type="text" placeholder="Company" value={exp.company} onChange={(e) => updateExp(i, 'company', e.target.value)} className="w-full px-3 py-2 border rounded" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <input type="text" placeholder="Position" value={exp.position} onChange={(e) => updateExp(i, 'position', e.target.value)} className="px-3 py-2 border rounded" />
+                          <input type="text" placeholder="Duration" value={exp.duration} onChange={(e) => updateExp(i, 'duration', e.target.value)} className="px-3 py-2 border rounded" />
+                        </div>
+                        <textarea placeholder="Description..." value={exp.description} onChange={(e) => updateExp(i, 'description', e.target.value)} rows={3} className="w-full px-3 py-2 border rounded" />
+                        <button onClick={() => enhanceExp(i)} disabled={aiLoading || !exp.description} className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-700 rounded text-sm disabled:opacity-50">
+                          <Sparkles className="w-3 h-3" />
+                          {aiLoading ? 'Enhancing...' : 'AI Enhance'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border">
+                  <div className="flex justify-between mb-4">
+                    <h2 className="text-xl font-bold">Education</h2>
+                    <button onClick={addEdu} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg">+ Add</button>
+                  </div>
+                  <div className="space-y-4">
+                    {resume.education.map((edu, i) => (
+                      <div key={i} className="p-4 border rounded-lg space-y-3">
+                        <input type="text" placeholder="School/University" value={edu.school} onChange={(e) => updateEdu(i, 'school', e.target.value)} className="w-full px-3 py-2 border rounded" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <input type="text" placeholder="Degree" value={edu.degree} onChange={(e) => updateEdu(i, 'degree', e.target.value)} className="px-3 py-2 border rounded" />
+                          <input type="text" placeholder="Year" value={edu.year} onChange={(e) => updateEdu(i, 'year', e.target.value)} className="px-3 py-2 border rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border">
+                  <div className="flex justify-between mb-4">
+                    <h2 className="text-xl font-bold">Skills</h2>
+                    <button onClick={generateSkills} disabled={aiLoading || !resume.experience.some(e => e.description)} className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg disabled:opacity-50">
+                      <Sparkles className="w-4 h-4" />
+                      {aiLoading ? 'Generating...' : 'AI Generate'}
+                    </button>
+                  </div>
+                  <textarea placeholder="JavaScript, React, Python..." value={resume.skills} onChange={(e) => updateField('skills', e.target.value)} rows={3} className="w-full px-4 py-3 border rounded-lg" />
+                </div>
+              </div>
+
+              <div className="sticky top-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 border">
+                  <h3 className="font-semibold text-gray-700 mb-4">Live Preview</h3>
+                  <div className={`${templates[template]} p-8 rounded-lg`}>
+                    <div className="space-y-6">
+                      <div>
+                        <h1 className="text-3xl font-bold text-gray-900">{resume.name || 'Your Name'}</h1>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+                          <span>{resume.email || 'email@example.com'}</span>
+                          <span>{resume.phone || '(555) 123-4567'}</span>
+                          <span>{resume.location || 'City, State'}</span>
+                        </div>
+                      </div>
+                      {resume.summary && (
+                        <div>
+                          <h2 className="text-lg font-bold text-gray-800 mb-2">Summary</h2>
+                          <p className="text-sm text-gray-700">{resume.summary}</p>
+                        </div>
+                      )}
+                      {resume.experience.some(e => e.company) && (
+                        <div>
+                          <h2 className="text-lg font-bold text-gray-800 mb-3">Experience</h2>
+                          {resume.experience.filter(e => e.company).map((exp, i) => (
+                            <div key={i} className="mb-4">
+                              <div className="flex justify-between">
+                                <div>
+                                  <h3 className="font-semibold">{exp.position}</h3>
+                                  <p className="text-sm text-gray-600">{exp.company}</p>
+                                </div>
+                                <span className="text-sm text-gray-500">{exp.duration}</span>
+                              </div>
+                              <p className="text-sm text-gray-700 mt-2">{exp.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {resume.education.some(e => e.school) && (
+                        <div>
+                          <h2 className="text-lg font-bold text-gray-800 mb-3">Education</h2>
+                          {resume.education.filter(e => e.school).map((edu, i) => (
+                            <div key={i} className="mb-3 flex justify-between">
+                              <div>
+                                <h3 className="font-semibold">{edu.school}</h3>
+                                <p className="text-sm text-gray-600">{edu.degree}</p>
+                              </div>
+                              <span className="text-sm text-gray-500">{edu.year}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {resume.skills && (
+                        <div>
+                          <h2 className="text-lg font-bold text-gray-800 mb-2">Skills</h2>
+                          <p className="text-sm text-gray-700">{resume.skills}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {!isPro && (
+            <div className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl shadow-2xl p-6 max-w-sm z-40">
+              <h3 className="font-bold text-lg mb-2">Unlock Premium</h3>
+              <div className="text-xs mb-3 bg-white bg-opacity-20 rounded px-2 py-1 inline-block">
+                {aiUsageCount}/3 free AI uses
+              </div>
+              <button onClick={() => setShowUpgradeModal(true)} className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold">
+                Upgrade Now
+              </button>
+            </div>
+          )}
+        </div>
       );
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(App));
+    root.render(<ResumeBuilder />);
   </script>
 </body>
 </html>
