@@ -1,10 +1,9 @@
-const stripe = require('stripe')('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');
+const stripe = require('stripe')('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');
 
 console.log('===== HARDCODED KEY VERSION - TIMESTAMP: 2026-01-06 13:15 =====');
 console.log('Stripe key type:', typeof stripe);
 console.log('Has stripe:', !!stripe);
 
-module.exports = async (req, res) => {
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -27,10 +26,6 @@ module.exports = async (req, res) => {
 
     if (!priceId) {
       return res.status(400).json({ error: 'Price ID is required' });
-    }
-
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ error: 'Stripe key not configured' });
     }
 
     console.log('Creating Stripe session...');
