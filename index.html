@@ -54,7 +54,7 @@
         }
       };
 
-      const enhanceWithAI = async (field, text) => {
+     const enhanceWithAI = async (field, text) => {
         if (!text || text.trim() === '') {
           alert('Please add some text first!');
           return text;
@@ -66,23 +66,19 @@
         setAiLoading(true);
         setAiSuccess(null);
         try {
-          const res = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-20250514",
-              max_tokens: 1000,
-              messages: [{ role: "user", content: `Improve this resume ${field}: "${text}". Make it more professional, achievement-focused, and ATS-friendly. Return ONLY the improved text, no explanations.` }]
-            })
+          const res = await fetch('/api/enhance-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field, text })
           });
           if (!res.ok) throw new Error('API call failed');
           const data = await res.json();
-          const enhanced = data.content[0].text.trim();
           setAiSuccess('✅ Enhanced successfully!');
           if (!isPro) setAiUsageCount(p => p + 1);
           setTimeout(() => setAiSuccess(null), 3000);
-          return enhanced;
+          return data.enhanced;
         } catch (err) {
+          console.error('Enhancement error:', err);
           setAiSuccess('❌ Enhancement failed');
           setTimeout(() => setAiSuccess(null), 3000);
           return text;
@@ -113,7 +109,7 @@
       };
       const addEdu = () => setResume(p => ({ ...p, education: [...p.education, { school: '', degree: '', year: '' }] }));
       const updateEdu = (i, f, v) => setResume(p => ({ ...p, education: p.education.map((e, idx) => idx === i ? { ...e, [f]: v } : e) }));
-      const generateSkills = async () => {
+     const generateSkills = async () => {
         const expWithDesc = resume.experience.filter(e => e.description && e.description.trim() !== '');
         if (expWithDesc.length === 0) {
           alert('Please add some experience descriptions first!');
@@ -127,22 +123,22 @@
         setAiSuccess(null);
         try {
           const expText = expWithDesc.map(e => `${e.position} at ${e.company}: ${e.description}`).join('\n\n');
-          const res = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-20250514",
-              max_tokens: 1000,
-              messages: [{ role: "user", content: `Based on this work experience, extract relevant professional skills. Include both technical and soft skills. Return ONLY a comma-separated list:\n\n${expText}` }]
+          const res = await fetch('/api/enhance-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              field: 'skills extraction', 
+              text: `Extract skills from: ${expText}` 
             })
           });
           if (!res.ok) throw new Error('API call failed');
           const data = await res.json();
-          updateField('skills', data.content[0].text.trim());
+          updateField('skills', data.enhanced);
           setAiSuccess('✅ Skills generated!');
           if (!isPro) setAiUsageCount(p => p + 1);
           setTimeout(() => setAiSuccess(null), 3000);
         } catch (err) {
+          console.error('Skills generation error:', err);
           setAiSuccess('❌ Generation failed');
           setTimeout(() => setAiSuccess(null), 3000);
         } finally {
