@@ -23,6 +23,7 @@
     const Download = () => html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>`;
     const X = () => html`<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
     const Crown = () => html`<svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`;
+    const Lock = () => html`<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>`;
 
     function App() {
       const [resume, setResume] = useState({
@@ -31,6 +32,7 @@
         education: [{ school: '', degree: '', year: '' }],
         skills: ''
       });
+      const [template, setTemplate] = useState('modern');
       const [aiLoading, setAiLoading] = useState(false);
       const [aiSuccess, setAiSuccess] = useState(null);
       const [isPro, setIsPro] = useState(false);
@@ -39,6 +41,45 @@
 
       const MONTHLY = 'price_1SmcQwCsMGESldVaYSPruaAo';
       const LIFETIME = 'price_1SmcRKCsMGESldValjweeshu';
+
+      const templates = {
+        modern: {
+          name: 'Modern',
+          container: 'bg-white border-l-4 border-blue-500 shadow-sm',
+          header: 'border-b-2 border-blue-500 pb-4 mb-6',
+          name: 'text-3xl font-bold text-gray-900',
+          contact: 'text-sm text-gray-600',
+          sectionTitle: 'text-lg font-bold text-blue-600 mb-3 uppercase tracking-wide',
+          text: 'text-gray-700'
+        },
+        classic: {
+          name: 'Classic',
+          container: 'bg-gray-50 border-2 border-gray-300 shadow-md',
+          header: 'text-center border-b border-gray-400 pb-4 mb-6',
+          name: 'text-4xl font-serif font-bold text-gray-900',
+          contact: 'text-sm text-gray-600 justify-center',
+          sectionTitle: 'text-base font-serif font-bold text-gray-900 mb-3 border-b border-gray-300 pb-1',
+          text: 'text-gray-800 font-serif'
+        },
+        minimal: {
+          name: 'Minimal',
+          container: 'bg-white shadow-lg',
+          header: 'mb-8',
+          name: 'text-2xl font-light text-gray-900 tracking-wide',
+          contact: 'text-xs text-gray-500 mt-2',
+          sectionTitle: 'text-sm font-semibold text-gray-900 mb-4 tracking-widest uppercase',
+          text: 'text-gray-600 text-sm leading-relaxed'
+        },
+        bold: {
+          name: 'Bold',
+          container: 'bg-gradient-to-br from-purple-50 to-blue-50 border-4 border-purple-500 shadow-xl',
+          header: 'bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 -m-8 mb-6',
+          name: 'text-3xl font-black text-white',
+          contact: 'text-sm text-purple-100',
+          sectionTitle: 'text-lg font-black text-purple-600 mb-3 uppercase',
+          text: 'text-gray-800'
+        }
+      };
 
       const handleUpgrade = async (priceId) => {
         try {
@@ -54,7 +95,7 @@
         }
       };
 
-     const enhanceWithAI = async (field, text) => {
+      const enhanceWithAI = async (field, text) => {
         if (!text || text.trim() === '') {
           alert('Please add some text first!');
           return text;
@@ -78,7 +119,6 @@
           setTimeout(() => setAiSuccess(null), 3000);
           return data.enhanced;
         } catch (err) {
-          console.error('Enhancement error:', err);
           setAiSuccess('❌ Enhancement failed');
           setTimeout(() => setAiSuccess(null), 3000);
           return text;
@@ -109,7 +149,7 @@
       };
       const addEdu = () => setResume(p => ({ ...p, education: [...p.education, { school: '', degree: '', year: '' }] }));
       const updateEdu = (i, f, v) => setResume(p => ({ ...p, education: p.education.map((e, idx) => idx === i ? { ...e, [f]: v } : e) }));
-     const generateSkills = async () => {
+      const generateSkills = async () => {
         const expWithDesc = resume.experience.filter(e => e.description && e.description.trim() !== '');
         if (expWithDesc.length === 0) {
           alert('Please add some experience descriptions first!');
@@ -126,10 +166,7 @@
           const res = await fetch('/api/enhance-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              field: 'skills extraction', 
-              text: `Extract skills from: ${expText}` 
-            })
+            body: JSON.stringify({ field: 'skills extraction', text: `Extract skills from: ${expText}` })
           });
           if (!res.ok) throw new Error('API call failed');
           const data = await res.json();
@@ -138,7 +175,6 @@
           if (!isPro) setAiUsageCount(p => p + 1);
           setTimeout(() => setAiSuccess(null), 3000);
         } catch (err) {
-          console.error('Skills generation error:', err);
           setAiSuccess('❌ Generation failed');
           setTimeout(() => setAiSuccess(null), 3000);
         } finally {
@@ -150,6 +186,8 @@
         const enhanced = await enhanceWithAI('professional summary', resume.summary);
         if (enhanced !== resume.summary) updateField('summary', enhanced);
       };
+
+      const currentTemplate = templates[template];
 
       return html`
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -179,7 +217,7 @@
                 <div className="text-center mb-8">
                   <div className="text-blue-600 mb-4 flex justify-center"><${Crown} /></div>
                   <h2 className="text-3xl font-bold mb-2">Upgrade to Pro</h2>
-                  <p className="text-gray-600">Unlock unlimited AI features</p>
+                  <p className="text-gray-600">Unlock unlimited AI features and premium templates</p>
                   ${!isPro && html`<p className="text-sm text-orange-600 mt-2">You've used ${aiUsageCount}/3 free AI enhancements</p>`}
                 </div>
                 <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -191,7 +229,7 @@
                     </div>
                     <ul className="space-y-2 mb-6 text-sm">
                       <li>✓ Unlimited AI enhancements</li>
-                      <li>✓ All premium templates</li>
+                      <li>✓ 4 professional templates</li>
                       <li>✓ Priority support</li>
                       <li>✓ Cancel anytime</li>
                     </ul>
@@ -209,7 +247,7 @@
                     <ul className="space-y-2 mb-6 text-sm">
                       <li>✓ Everything in Monthly</li>
                       <li>✓ Pay once, use forever</li>
-                      <li>✓ All future updates</li>
+                      <li>✓ All future templates</li>
                       <li>✓ Save $680+ over 4 years</li>
                     </ul>
                     <button onClick=${() => handleUpgrade(LIFETIME)} className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg">
@@ -232,7 +270,7 @@
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6 border">
+              <div className="bg-white rounded-xl shadow-sm p-6 border">
                   <h2 className="text-xl font-bold mb-4 text-gray-900">Personal Information</h2>
                   <div className="space-y-4">
                     <input type="text" placeholder="Full Name" value=${resume.name} onInput=${(e) => updateField('name', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
@@ -272,6 +310,7 @@
                     `)}
                   </div>
                 </div>
+
                 <div className="bg-white rounded-xl shadow-sm p-6 border">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-900">Experience</h2>
@@ -294,6 +333,7 @@
                     `)}
                   </div>
                 </div>
+
                 <div className="bg-white rounded-xl shadow-sm p-6 border">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-900">Skills</h2>
@@ -306,20 +346,53 @@
                   <p className="text-xs text-gray-500 mt-2">💡 Tip: Click "AI Generate" to extract skills from your experience</p>
                 </div>
               </div>
+
               <div className="sticky top-6">
                 <div className="bg-white rounded-xl shadow-lg p-6 border">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-700">Live Preview</h3>
-                    <button onClick=${downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
-                      <${Download} />
-                      Download PDF
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <select 
+                          value=${template} 
+                          onChange=${(e) => isPro ? setTemplate(e.target.value) : setShowUpgradeModal(true)}
+                          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium appearance-none pr-8 ${!isPro ? 'cursor-pointer' : ''}"
+                        >
+                          <option value="modern">Modern</option>
+                          <option value="classic" disabled=${!isPro}>Classic ${!isPro ? '🔒' : ''}</option>
+                          <option value="minimal" disabled=${!isPro}>Minimal ${!isPro ? '🔒' : ''}</option>
+                          <option value="bold" disabled=${!isPro}>Bold ${!isPro ? '🔒' : ''}</option>
+                        </select>
+                        ${!isPro && html`
+                          <button 
+                            onClick=${() => setShowUpgradeModal(true)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2"
+                          >
+                            <${Lock} />
+                          </button>
+                        `}
+                      </div>
+                      <button onClick=${downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg">
+                        <${Download} />
+                        PDF
+                      </button>
+                    </div>
                   </div>
-                  <div id="resume-preview" className="bg-white border-l-4 border-blue-500 p-8 rounded-lg">
+                  
+                  ${!isPro && template !== 'modern' && html`
+                    <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-purple-700 text-sm">
+                        <${Lock} />
+                        <span>Upgrade to Pro to unlock ${templates[template].name} template</span>
+                      </div>
+                    </div>
+                  `}
+
+                  <div id="resume-preview" className="${currentTemplate.container} p-8 rounded-lg">
                     <div className="space-y-6">
-                      <div>
-                        <h1 className="text-3xl font-bold text-gray-900">${resume.name || 'Your Name'}</h1>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+                      <div className="${currentTemplate.header}">
+                        <h1 className="${currentTemplate.name}">${resume.name || 'Your Name'}</h1>
+                        <div className="flex flex-wrap gap-4 ${currentTemplate.contact} mt-2">
                           <span>${resume.email || 'email@example.com'}</span>
                           <span>${resume.phone || '(555) 123-4567'}</span>
                           <span>${resume.location || 'City, State'}</span>
@@ -327,21 +400,21 @@
                       </div>
                       ${resume.summary && html`
                         <div>
-                          <h2 className="text-lg font-bold text-gray-800 mb-2">Professional Summary</h2>
-                          <p className="text-sm text-gray-700 leading-relaxed">${resume.summary}</p>
+                          <h2 className="${currentTemplate.sectionTitle}">Professional Summary</h2>
+                          <p className="${currentTemplate.text} text-sm leading-relaxed">${resume.summary}</p>
                         </div>
                       `}
                       ${resume.education.some(e => e.school) && html`
                         <div>
-                          <h2 className="text-lg font-bold text-gray-800 mb-3">Education</h2>
+                          <h2 className="${currentTemplate.sectionTitle}">Education</h2>
                           ${resume.education.filter(e => e.school).map(edu => html`
                             <div className="mb-3">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h3 className="font-semibold text-gray-900">${edu.school}</h3>
-                                  <p className="text-sm text-gray-600">${edu.degree}</p>
+                                  <h3 className="font-semibold ${currentTemplate.text}">${edu.school}</h3>
+                                  <p className="text-sm ${currentTemplate.text} opacity-80">${edu.degree}</p>
                                 </div>
-                                <span className="text-sm text-gray-500">${edu.year}</span>
+                                <span className="text-sm ${currentTemplate.text} opacity-70">${edu.year}</span>
                               </div>
                             </div>
                           `)}
@@ -349,25 +422,25 @@
                       `}
                       ${resume.experience.some(e => e.company) && html`
                         <div>
-                          <h2 className="text-lg font-bold text-gray-800 mb-3">Experience</h2>
+                          <h2 className="${currentTemplate.sectionTitle}">Experience</h2>
                           ${resume.experience.filter(e => e.company).map(exp => html`
                             <div className="mb-4">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h3 className="font-semibold text-gray-900">${exp.position}</h3>
-                                  <p className="text-sm text-gray-600">${exp.company}</p>
+                                  <h3 className="font-semibold ${currentTemplate.text}">${exp.position}</h3>
+                                  <p className="text-sm ${currentTemplate.text} opacity-80">${exp.company}</p>
                                 </div>
-                                <span className="text-sm text-gray-500">${exp.duration}</span>
+                                <span className="text-sm ${currentTemplate.text} opacity-70">${exp.duration}</span>
                               </div>
-                              <p className="text-sm text-gray-700 mt-2 leading-relaxed">${exp.description}</p>
+                              <p className="text-sm ${currentTemplate.text} mt-2 leading-relaxed">${exp.description}</p>
                             </div>
                           `)}
                         </div>
                       `}
                       ${resume.skills && html`
                         <div>
-                          <h2 className="text-lg font-bold text-gray-800 mb-2">Skills</h2>
-                          <p className="text-sm text-gray-700">${resume.skills}</p>
+                          <h2 className="${currentTemplate.sectionTitle}">Skills</h2>
+                          <p className="text-sm ${currentTemplate.text}">${resume.skills}</p>
                         </div>
                       `}
                     </div>
@@ -382,9 +455,9 @@
               <h3 className="font-bold text-lg mb-2">Unlock Premium Features</h3>
               <ul className="text-sm space-y-1 mb-4 opacity-90">
                 <li>• Unlimited AI enhancements</li>
-                <li>• 20+ premium templates</li>
+                <li>• 4 professional templates</li>
                 <li>• Priority support</li>
-                <li>• Cover letter generator</li>
+                <li>• All future updates</li>
               </ul>
               <div className="text-xs mb-3 bg-white bg-opacity-20 rounded px-2 py-1 inline-block">
                 ${aiUsageCount}/3 free AI uses remaining
