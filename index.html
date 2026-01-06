@@ -3,17 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ResumeAI Pro - Test</title>
+  <title>ResumeAI Pro - AI-Powered Resume Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
   <div id="root"></div>
   
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   
-  <script>
+  <script type="module">
+    const { FileText, Sparkles, CheckCircle, AlertCircle, Zap, X, Crown, Download } = lucide;
+    
+    function App() {
+      const [activeTab, setActiveTab] = React.useState('builder');
+      const [resume, setResume] = React.useState({
+        name: '', email: '', phone: '', location: '', summary: '',
+        experience: [{ company: '', position: '', duration: '', description: '' }],
+        education: [{ school: '', degree: '', year: '' }],
+        skills: ''
+      });
+
+      return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50' },
+        React.createElement('h1', { className: 'text-4xl font-bold text-center py-20' }, 'ResumeAI Pro'),
+        React.createElement('p', { className: 'text-center text-gray-600' }, 'AI-Powered Resume Builder - Loading Successfully!')
+      );
+    }
+
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement('h1', {style: {padding: '20px'}}, 'React is Working! ✅'));
+    root.render(React.createElement(App));
   </script>
 </body>
 </html>
