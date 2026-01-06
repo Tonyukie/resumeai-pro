@@ -11,13 +11,17 @@
   
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <script src="https://unpkg.com/htm@3.1.1/dist/htm.js"></script>
   
   <script type="module">
     const html = htm.bind(React.createElement);
     const { useState } = React;
-    const { FileText, Sparkles, CheckCircle, AlertCircle, Zap, X, Crown } = lucide;
+
+    // Simple icon components (no lucide needed)
+    const FileText = () => html`<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`;
+    const Sparkles = () => html`<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>`;
+    const X = () => html`<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+    const Crown = () => html`<svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`;
 
     function App() {
       const [resume, setResume] = useState({
@@ -26,7 +30,6 @@
         education: [{ school: '', degree: '', year: '' }],
         skills: ''
       });
-      const [template] = useState('modern');
       const [aiLoading, setAiLoading] = useState(false);
       const [aiSuccess, setAiSuccess] = useState(null);
       const [isPro, setIsPro] = useState(false);
@@ -116,15 +119,13 @@
         }
       };
 
-      const templates = { modern: 'bg-white border-l-4 border-blue-500' };
-
       return html`
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
           <header className="bg-white shadow-sm border-b">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <${FileText} className="w-6 h-6 text-white" />
+                  <${FileText} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">ResumeAI Pro</h1>
@@ -141,10 +142,10 @@
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-2xl max-w-2xl w-full p-8 relative">
                 <button onClick=${() => setShowUpgradeModal(false)} className="absolute top-4 right-4">
-                  <${X} className="w-6 h-6" />
+                  <${X} />
                 </button>
                 <div className="text-center mb-8">
-                  <${Crown} className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+                  <div className="text-blue-600 mb-4"><${Crown} /></div>
                   <h2 className="text-3xl font-bold mb-2">Upgrade to Pro</h2>
                   <p className="text-gray-600">Unlock unlimited AI features</p>
                   ${!isPro && html`<p className="text-sm text-orange-600 mt-2">Used ${aiUsageCount}/3 free AI enhancements</p>`}
@@ -193,7 +194,7 @@
                   <div className="flex justify-between mb-4">
                     <h2 className="text-xl font-bold">Summary</h2>
                     <button onClick=${async () => updateField('summary', await enhanceWithAI('summary', resume.summary))} disabled=${aiLoading || !resume.summary} className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg disabled:opacity-50">
-                      <${Sparkles} className="w-4 h-4" />
+                      <${Sparkles} />
                       ${aiLoading ? 'Enhancing...' : 'AI Enhance'}
                     </button>
                   </div>
@@ -215,7 +216,7 @@
                         </div>
                         <textarea placeholder="Description..." value=${exp.description} onInput=${(e) => updateExp(i, 'description', e.target.value)} rows="3" className="w-full px-3 py-2 border rounded"></textarea>
                         <button onClick=${() => enhanceExp(i)} disabled=${aiLoading || !exp.description} className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-700 rounded text-sm disabled:opacity-50">
-                          <${Sparkles} className="w-3 h-3" />
+                          <${Sparkles} />
                           ${aiLoading ? 'Enhancing...' : 'AI Enhance'}
                         </button>
                       </div>
@@ -245,7 +246,7 @@
                   <div className="flex justify-between mb-4">
                     <h2 className="text-xl font-bold">Skills</h2>
                     <button onClick=${generateSkills} disabled=${aiLoading || !resume.experience.some(e => e.description)} className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg disabled:opacity-50">
-                      <${Sparkles} className="w-4 h-4" />
+                      <${Sparkles} />
                       ${aiLoading ? 'Generating...' : 'AI Generate'}
                     </button>
                   </div>
@@ -256,7 +257,7 @@
               <div className="sticky top-6">
                 <div className="bg-white rounded-xl shadow-lg p-6 border">
                   <h3 className="font-semibold text-gray-700 mb-4">Live Preview</h3>
-                  <div className="${templates[template]} p-8 rounded-lg">
+                  <div className="bg-white border-l-4 border-blue-500 p-8 rounded-lg">
                     <div className="space-y-6">
                       <div>
                         <h1 className="text-3xl font-bold">${resume.name || 'Your Name'}</h1>
@@ -275,8 +276,8 @@
                       ${resume.experience.some(e => e.company) && html`
                         <div>
                           <h2 className="text-lg font-bold text-gray-800 mb-3">Experience</h2>
-                          ${resume.experience.filter(e => e.company).map((exp, i) => html`
-                            <div key=${i} className="mb-4">
+                          ${resume.experience.filter(e => e.company).map(exp => html`
+                            <div className="mb-4">
                               <div className="flex justify-between">
                                 <div>
                                   <h3 className="font-semibold">${exp.position}</h3>
@@ -292,8 +293,8 @@
                       ${resume.education.some(e => e.school) && html`
                         <div>
                           <h2 className="text-lg font-bold text-gray-800 mb-3">Education</h2>
-                          ${resume.education.filter(e => e.school).map((edu, i) => html`
-                            <div key=${i} className="mb-3 flex justify-between">
+                          ${resume.education.filter(e => e.school).map(edu => html`
+                            <div className="mb-3 flex justify-between">
                               <div>
                                 <h3 className="font-semibold">${edu.school}</h3>
                                 <p className="text-sm text-gray-600">${edu.degree}</p>
